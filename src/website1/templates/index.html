@@ -27,15 +27,26 @@
 		</p>
 
 		<hr />
-		<p id="script-result">
-			Loading script... (if script fails to load, this will never update)
+		<p id="local-script-result">
+			🔃 Loading local script... (if script fails to load, this will never
+			update)
+		</p>
+		<p id="cross-origin-result">
+			🔃 Loading cross-origin script... (if script fails to load, this will
+			never update)
 		</p>
 
 		<script
 			type="module"
-			src="/script.js"
+			src="/local-script.js"
 			nonce="{{nonce}}"
 			integrity="{{scriptIntegrity}}"
+		></script>
+
+		<script
+			type="module"
+			src="http://localhost:8081/cross-origin.js"
+			nonce="{{nonce}}"
 		></script>
 	</body>
 </html>

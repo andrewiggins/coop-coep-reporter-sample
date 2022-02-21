@@ -14,7 +14,7 @@ const baseUri = `http://${host}:${port}`;
 
 const website1Root = (...paths) => repoRoot("src/website1", ...paths);
 const templatePath = website1Root("templates/index.html");
-const scriptPath = website1Root("public/script.js");
+const scriptPath = website1Root("public/local-script.js");
 
 // Useful security header links:
 // - https://web.dev/security-headers/
@@ -73,7 +73,7 @@ app.get("/", async (req, res) => {
 
 	const nonce = crypto.randomUUID();
 	const alg = "sha256";
-	const scriptIntegrity = crypto
+	const localScriptIntegrity = crypto
 		.createHash(alg)
 		.update(await readFile(scriptPath))
 		.digest()
@@ -83,17 +83,18 @@ app.get("/", async (req, res) => {
 		nonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
 		scriptIntegrity: req.query["fail-integrity"]
 			? `${alg}-bad-integrity`
-			: `${alg}-${scriptIntegrity}`,
+			: `${alg}-${localScriptIntegrity}`,
 	});
+	const htmlBuffer = new TextEncoder().encode(html);
 
 	res.writeHead(200, "OK", {
 		"Content-Type": "text/html",
-		"Content-Length": html.length,
+		"Content-Length": htmlBuffer.byteLength,
 		...commonSecurityHeaders,
 		...documentSecurityHeaders(nonce),
 	});
 
-	res.end(html);
+	res.end(htmlBuffer);
 });
 
 app.post("report", (req, res) => {
