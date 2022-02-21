@@ -1,6 +1,5 @@
 // @ts-check
 import crypto from "crypto";
-import { readFileSync } from "fs";
 import { readFile } from "fs/promises";
 import polka from "polka";
 import sirv from "sirv";
@@ -11,8 +10,47 @@ const website1Root = (...paths) => repoRoot("src/website1", ...paths);
 const templatePath = website1Root("templates/index.html");
 const scriptPath = website1Root("public/script.js");
 
+// Useful security header links:
+// - https://web.dev/security-headers/
+// - https://securityheaders.com/
+
+/** Security headers to apply to all requests */
+const commonSecurityHeaders = {
+	"X-Content-Type-Options": "nosniff", // Prevent sniffing content type (which can be hacked)
+	// "Cross-Origin-Resource-Policy": "same-origin", // allows a resource owner to specify who can load the resource. Here, we allow only our origin load our assets
+};
+
+/** Security headers to apply to all document/HTML requests */
+const documentSecurityHeaders = (nonce) => ({
+	"X-Frame-Options": "DENY", // Prevent other sites from iframing us
+	// Useful CSP links:
+	// - https://web.dev/strict-csp/
+	// - https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html
+	// - https://www.w3.org/TR/CSP3/#directive-fallback-list
+	"Content-Security-Policy":
+		`script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'; ` +
+		`object-src 'none'; ` +
+		`base-uri 'none'; ` +
+		`frame-ancestors 'none'; ` +
+		`require-trusted-types-for 'script'; ` +
+		`report-uri https://csp.example.com; `, // TODO: Build reporting endpoint
+	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
+	// "Cross-Origin-Embedder-Policy": "require-corp", // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
+	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
+	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
+});
+
 polka()
-	.use(sirv(website1Root("public"), { dev: true }))
+	.use(
+		sirv(website1Root("public"), {
+			dev: true,
+			setHeaders(res) {
+				for (let name of Object.keys(commonSecurityHeaders)) {
+					res.setHeader(name, commonSecurityHeaders[name]);
+				}
+			},
+		})
+	)
 	.get("/", async (req, res) => {
 		// Recompile template and integrity on every request to support easy development.
 		// In production, compute these once
@@ -29,26 +67,9 @@ polka()
 			.toString("base64url");
 
 		res.writeHead(200, "OK", {
-			// ===============================================
-			//
-			// TODO: figure out which of these need to be on static resources too
-			//
-			// ===============================================
-
-			"X-Frame-Options": "DENY", // Prevent other sites from iframing us
-			"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
-			"X-Content-Type-Options": "nosniff", // Prevent sniffing content type (which can be hacked)
-			"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
-			"Content-Security-Policy":
-				`script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'; ` +
-				`object-src 'none'; ` +
-				`base-uri 'none'; ` +
-				`frame-ancestors 'none'; ` +
-				`require-trusted-types-for 'script'; ` +
-				`report-uri https://csp.example.com; `, // TODO: Build reporting endpoint
-			// "Cross-Origin-Embedder-Policy": "", // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
-			// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
-			// "Cross-Origin-Resource-Policy": "", // allows a resource owner to specify who can load the resource.
+			"Content-Type": "text/html",
+			...commonSecurityHeaders,
+			...documentSecurityHeaders(nonce),
 		});
 
 		res.end(
