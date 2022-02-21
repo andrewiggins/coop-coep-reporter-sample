@@ -29,12 +29,26 @@ polka()
 			.toString("base64url");
 
 		res.writeHead(200, "OK", {
+			// ===============================================
+			//
+			// TODO: figure out which of these need to be on static resources too
+			//
+			// ===============================================
+
+			"X-Frame-Options": "DENY", // Prevent other sites from iframing us
+			"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
+			"X-Content-Type-Options": "nosniff", // Prevent sniffing content type (which can be hacked)
+			"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
 			"Content-Security-Policy":
 				`script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'; ` +
 				`object-src 'none'; ` +
 				`base-uri 'none'; ` +
+				`frame-ancestors 'none'; ` +
 				`require-trusted-types-for 'script'; ` +
-				`report-uri https://csp.example.com; `,
+				`report-uri https://csp.example.com; `, // TODO: Build reporting endpoint
+			// "Cross-Origin-Embedder-Policy": "", // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
+			// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
+			// "Cross-Origin-Resource-Policy": "", // allows a resource owner to specify who can load the resource.
 		});
 
 		res.end(
