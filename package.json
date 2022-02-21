@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/andrewiggins/coop-coep-reporter-sample#readme",
   "dependencies": {
+    "body-parser": "^1.19.2",
+    "morgan": "^1.10.0",
     "polka": "^0.5.2",
     "sirv": "^2.0.2",
     "tempura": "^0.4.0"

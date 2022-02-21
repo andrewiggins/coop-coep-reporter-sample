@@ -1,10 +1,16 @@
 // @ts-check
+import bodyParser from "body-parser";
 import crypto from "crypto";
 import { readFile } from "fs/promises";
+import morgan from "morgan";
 import polka from "polka";
 import sirv from "sirv";
 import { compile } from "tempura";
 import { repoRoot } from "../utils.js";
+
+const host = "localhost";
+const port = 8080;
+const baseUri = `http://${host}:${port}`;
 
 const website1Root = (...paths) => repoRoot("src/website1", ...paths);
 const templatePath = website1Root("templates/index.html");
@@ -33,15 +39,20 @@ const documentSecurityHeaders = (nonce) => ({
 		`base-uri 'none'; ` +
 		`frame-ancestors 'none'; ` +
 		`require-trusted-types-for 'script'; ` +
-		`report-uri https://csp.example.com; `, // TODO: Build reporting endpoint
-	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
+		`block-all-mixed-content; ` +
+		// `upgrade-insecure-requests; ` + // when running locally we don't support https
+		`report-uri ${baseUri}/report; `,
 	// "Cross-Origin-Embedder-Policy": "require-corp", // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
+	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
 	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
 });
 
 const app = polka();
 
+app.use(morgan("dev"));
+app.use(bodyParser.json());
+app.use(bodyParser.json({ type: "application/csp-report" }));
 app.use(
 	sirv(website1Root("public"), {
 		dev: true,
@@ -68,23 +79,33 @@ app.get("/", async (req, res) => {
 		.digest()
 		.toString("base64url");
 
+	const html = await render({
+		nonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
+		scriptIntegrity: req.query["fail-integrity"]
+			? `${alg}-bad-integrity`
+			: `${alg}-${scriptIntegrity}`,
+	});
+
 	res.writeHead(200, "OK", {
 		"Content-Type": "text/html",
+		"Content-Length": html.length,
 		...commonSecurityHeaders,
 		...documentSecurityHeaders(nonce),
 	});
 
-	res.end(
-		render({
-			nonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
-			scriptIntegrity: req.query["fail-integrity"]
-				? `${alg}-bad-integrity`
-				: `${alg}-${scriptIntegrity}`,
-		})
-	);
+	res.end(html);
 });
 
-app.listen(8080, (err) => {
+app.post("report", (req, res) => {
+	console.log("=== REPORT:", JSON.stringify(req.body, null, 2));
+	res.writeHead(204, "No Content", {
+		...commonSecurityHeaders,
+	});
+
+	res.end();
+});
+
+app.listen(port, (err) => {
 	if (err) throw err;
 	console.log(`> Running on localhost:8080`);
 });
