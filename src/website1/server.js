@@ -8,18 +8,23 @@ import { compile } from "tempura";
 import { repoRoot } from "../utils.js";
 
 const website1Root = (...paths) => repoRoot("src/website1", ...paths);
-const render = compile(
-	readFileSync(website1Root("templates/index.html"), "utf-8")
-);
+const templatePath = website1Root("templates/index.html");
+const scriptPath = website1Root("public/script.js");
 
 polka()
 	.use(sirv(website1Root("public"), { dev: true }))
 	.get("/", async (req, res) => {
+		// Recompile template and integrity on every request to support easy development.
+		// In production, compute these once
+
+		const template = await readFile(templatePath, "utf-8");
+		const render = compile(template);
+
 		const nonce = crypto.randomUUID();
 		const alg = "sha256";
 		const scriptIntegrity = crypto
 			.createHash(alg)
-			.update(await readFile(website1Root("public/script.js")))
+			.update(await readFile(scriptPath))
 			.digest()
 			.toString("base64url");
 
