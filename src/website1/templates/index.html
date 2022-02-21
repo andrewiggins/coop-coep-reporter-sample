@@ -1,0 +1,25 @@
+{{#expect nonce}}
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Website 1</title>
+	</head>
+	<body>
+		<h1>Website 1</h1>
+		<p>Scenarios to try:</p>
+
+		<h2>Success!</h2>
+		<p><a href="/">Demo</a></p>
+		<p>All security headers are passed!</p>
+
+		<h2>Fail CSP nonce check</h2>
+		<p><a href="/?fail-nonce=1">Demo</a></p>
+		<p>Fail to load the script because the nonce attribute doesn't match.</p>
+
+		<script nonce="{{nonce}}" src="/script.js" type="module"></script>
+	</body>
+</html>
