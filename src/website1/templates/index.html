@@ -1,4 +1,4 @@
-{{#expect nonce}}
+{{#expect nonce, scriptIntegrity}}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -14,12 +14,23 @@
 
 		<h2>Success!</h2>
 		<p><a href="/">Demo</a></p>
-		<p>All security headers are passed!</p>
+		<p>All security validations passed!</p>
 
 		<h2>Fail CSP nonce check</h2>
 		<p><a href="/?fail-nonce=1">Demo</a></p>
 		<p>Fail to load the script because the nonce attribute doesn't match.</p>
 
-		<script nonce="{{nonce}}" src="/script.js" type="module"></script>
+		<h2>Fail sub-resource integrity check</h2>
+		<p><a href="/?fail-integrity=1">Demo</a></p>
+		<p>
+			Fail to load the script because the integrity attribute doesn't match.
+		</p>
+
+		<script
+			type="module"
+			src="/script.js"
+			nonce="{{nonce}}"
+			integrity="{{scriptIntegrity}}"
+		></script>
 	</body>
 </html>
