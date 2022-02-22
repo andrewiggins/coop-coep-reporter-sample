@@ -50,10 +50,13 @@ const documentSecurityHeaders = (nonce) => ({
 	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
 	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
+
 	// Report-To from:
 	// - https://developers.google.com/web/updates/2018/09/reportingapi
 	// - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
-	"Report-To": `{"group":"default","max_age":86400,"endpoints":[{"url":"${origin}/report-to"}]}`,
+	// - No cross browser support for Report-To to just using Reporting-Endpoint for now
+	// "Report-To": `{"group":"default","max_age":86400,"endpoints":[{"url":"${origin}/report-to"}]}`,
+
 	// Reporting-Endpoints from
 	// - https://web.dev/reporting-api/
 	// - https://web.dev/reporting-api-migration/
