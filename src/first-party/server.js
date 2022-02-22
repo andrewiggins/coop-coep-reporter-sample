@@ -35,6 +35,7 @@ const documentSecurityHeaders = (nonce) => ({
 	// - https://www.w3.org/TR/CSP3/#directive-fallback-list
 	"Content-Security-Policy":
 		`script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'; ` +
+		`style-src 'nonce-${nonce}'; ` + // Consider, does this block @import in css stylesheets?
 		`object-src 'none'; ` +
 		`base-uri 'none'; ` +
 		`frame-ancestors 'none'; ` +
@@ -48,21 +49,22 @@ const documentSecurityHeaders = (nonce) => ({
 	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
 });
 
+const sirvOptions = {
+	dev: true,
+	setHeaders(res) {
+		for (let name of Object.keys(commonSecurityHeaders)) {
+			res.setHeader(name, commonSecurityHeaders[name]);
+		}
+	},
+};
+
 const app = polka();
 
 app.use(morgan("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.json({ type: "application/csp-report" }));
-app.use(
-	sirv(siteRoot("public"), {
-		dev: true,
-		setHeaders(res) {
-			for (let name of Object.keys(commonSecurityHeaders)) {
-				res.setHeader(name, commonSecurityHeaders[name]);
-			}
-		},
-	})
-);
+app.use(sirv(siteRoot("public"), sirvOptions));
+app.use(sirv(siteRoot("../../node_modules/spectre.css/dist"), sirvOptions));
 
 app.get("/", async (req, res) => {
 	// Recompile template and integrity on every request to support easy development.

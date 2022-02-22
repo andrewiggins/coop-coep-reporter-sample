@@ -24,6 +24,7 @@
     "morgan": "^1.10.0",
     "polka": "^0.5.2",
     "sirv": "^2.0.2",
+    "spectre.css": "^0.5.9",
     "tempura": "^0.4.0"
   },
   "devDependencies": {
