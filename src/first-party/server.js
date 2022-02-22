@@ -90,7 +90,8 @@ app.get("/", async (req, res) => {
 	}
 
 	const html = await render({
-		nonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
+		nonce,
+		scriptNonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
 		scriptIntegrity: req.query["fail-integrity"]
 			? `${alg}-bad-integrity`
 			: `${alg}-${localScriptIntegrity}`,

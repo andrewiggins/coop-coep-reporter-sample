@@ -1,4 +1,4 @@
-{{#expect nonce, scriptIntegrity, crossOriginScriptUrl, requireCors}}
+{{#expect nonce, scriptNonce, scriptIntegrity, crossOriginScriptUrl, requireCors}}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -172,14 +172,14 @@
 
 		<script
 			src="/local-script.js"
-			nonce="{{nonce}}"
+			nonce="{{scriptNonce}}"
 			integrity="{{scriptIntegrity}}"
 		></script>
 
 		{{#if requireCors}}
 		<script
 			src="{{crossOriginScriptUrl}}"
-			nonce="{{nonce}}"
+			nonce="{{scriptNonce}}"
 			crossorigin="anonymous"
 		></script>
 		{{#else}}
