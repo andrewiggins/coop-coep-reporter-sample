@@ -32,6 +32,7 @@ const serverOptions = {
 };
 
 // Mount Polka to HTTPS server
+// @ts-ignore
 createServer(serverOptions, app.handler).listen(port, (_) => {
 	console.log(`> Running on ${origin}`);
 });

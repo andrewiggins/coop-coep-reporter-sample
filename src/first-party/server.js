@@ -44,11 +44,17 @@ const documentSecurityHeaders = (nonce) => ({
 		`require-trusted-types-for 'script'; ` +
 		`block-all-mixed-content; ` +
 		// `upgrade-insecure-requests; ` + // when running locally we don't support https
-		`report-uri ${origin}/report; `,
-	"Cross-Origin-Embedder-Policy": `require-corp`, // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
+		`report-uri ${origin}/report-uri`,
+	"Cross-Origin-Embedder-Policy": `require-corp; report-to="default"`, // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
 	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
 	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
+	// Report-To from:
+	// - https://developers.google.com/web/updates/2018/09/reportingapi
+	// - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
+	"Report-To": `{"group":"default","max_age":86400,"endpoints":[{"url":"${origin}/report-to"}]}`,
+	// Reporting-Endpoints from https://w3c.github.io/reporting/
+	"Reporting-Endpoints": `default="${origin}/reporting-endpoint"`,
 });
 
 const sirvOptions = {
@@ -63,8 +69,15 @@ const sirvOptions = {
 const app = polka();
 
 app.use(morgan("dev"));
-app.use(bodyParser.json());
-app.use(bodyParser.json({ type: "application/csp-report" }));
+app.use(
+	bodyParser.json({
+		type: [
+			"application/json",
+			"application/csp-report",
+			"application/reports+json",
+		],
+	})
+);
 app.use(sirv(siteRoot("public"), sirvOptions));
 app.use(sirv(siteRoot("../../node_modules/spectre.css/dist"), sirvOptions));
 
@@ -112,8 +125,35 @@ app.get("/", async (req, res) => {
 	res.end(htmlBuffer);
 });
 
-app.post("report", (req, res) => {
-	console.log("=== REPORT BODY RECEIVED:", JSON.stringify(req.body, null, 2));
+app.post("report-uri", (req, res) => {
+	console.log(
+		"=== REPORT-URI BODY RECEIVED:",
+		JSON.stringify(req.body, null, 2)
+	);
+	res.writeHead(204, "No Content", {
+		...commonSecurityHeaders,
+	});
+
+	res.end();
+});
+
+app.post("/report-to", (req, res) => {
+	console.log(
+		"=== REPORT-TO BODY RECEIVED:",
+		JSON.stringify(req.body, null, 2)
+	);
+	res.writeHead(204, "No Content", {
+		...commonSecurityHeaders,
+	});
+
+	res.end();
+});
+
+app.post("/reporting-endpoint", (req, res) => {
+	console.log(
+		"=== REPORTING-ENDPOINT BODY RECEIVED:",
+		JSON.stringify(req.body, null, 2)
+	);
 	res.writeHead(204, "No Content", {
 		...commonSecurityHeaders,
 	});
@@ -127,6 +167,7 @@ const serverOptions = {
 };
 
 // Mount Polka to HTTPS server
+// @ts-ignore
 createServer(serverOptions, app.handler).listen(port, (_) => {
 	console.log(`> Running on ${origin}`);
 });
