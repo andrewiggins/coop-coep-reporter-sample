@@ -1,7 +1,9 @@
 // @ts-check
 import bodyParser from "body-parser";
 import crypto from "crypto";
+import { readFileSync } from "fs";
 import { readFile } from "fs/promises";
+import { createServer } from "https";
 import morgan from "morgan";
 import polka from "polka";
 import sirv from "sirv";
@@ -10,7 +12,7 @@ import { repoRoot } from "../utils.js";
 
 const host = "localhost";
 const port = 8080;
-const baseUri = `http://${host}:${port}`;
+const baseUri = `https://${host}:${port}`;
 
 const siteRoot = (...paths) => repoRoot("src/first-party", ...paths);
 const templatePath = siteRoot("templates/index.html");
@@ -119,7 +121,12 @@ app.post("report", (req, res) => {
 	res.end();
 });
 
-app.listen(port, (err) => {
-	if (err) throw err;
-	console.log(`> Running on localhost:8080`);
+const serverOptions = {
+	pfx: readFileSync(repoRoot("ssl.pfx")),
+	passphrase: "password",
+};
+
+// Mount Polka to HTTPS server
+createServer(serverOptions, app.handler).listen(port, (_) => {
+	console.log(`> Running on https://localhost:${port}`);
 });
