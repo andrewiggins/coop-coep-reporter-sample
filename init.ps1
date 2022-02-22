@@ -1,11 +1,11 @@
-## Only necessary to install cert in root trusted store to skip "Cert invalid warning"
-# function Test-CurrentUserAdministrator {
-# 	$prp = New-Object System.Security.Principal.WindowsPrincipal([System.Security.Principal.WindowsIdentity]::GetCurrent())
-# 	return $prp.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
-# }
-# if ((Test-CurrentUserAdministrator) -eq $false) {
-# 	throw "Please run the script from an elevated (administrator) prompt so we can install dev cert."
-# }
+# Only necessary to install cert in root trusted store to skip "Cert invalid warning"
+function Test-CurrentUserAdministrator {
+	$prp = New-Object System.Security.Principal.WindowsPrincipal([System.Security.Principal.WindowsIdentity]::GetCurrent())
+	return $prp.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+if ((Test-CurrentUserAdministrator) -eq $false) {
+	throw "Please run the script from an elevated (administrator) prompt so we can install dev cert."
+}
 
 function Install-DevCert($dnsName, $output) {
 	# $devCert = Get-Item Cert:\CurrentUser\Root\* | Where-Object { $_.Subject -eq "CN=$dnsName" } # Check root store if installing in root
@@ -21,14 +21,14 @@ function Install-DevCert($dnsName, $output) {
 			-FriendlyName "Test cert for COOP & COEP reporting test website"
 
 		# Installed in root trusted store to avoid cert trust warnings in browser
-		# $storeName = [System.Security.Cryptography.X509Certificates.StoreName]::Root
-		# $storeLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
-		# $store = New-Object System.Security.Cryptography.X509Certificates.X509Store($storeName, $storeLocation)
+		$storeName = [System.Security.Cryptography.X509Certificates.StoreName]::Root
+		$storeLocation = [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
+		$store = New-Object System.Security.Cryptography.X509Certificates.X509Store($storeName, $storeLocation)
 
-		# Write-Host "Adding $($devCert.Subject) certificate to Root store... Look for a prompt to confirm this action" -Fore Yellow
-		# $store.open("ReadWrite")
-		# $store.add($devCert)
-		# $store.close()
+		Write-Host "Adding $($devCert.Subject) certificate to Root store... Look for a prompt to confirm this action" -Fore Yellow
+		$store.open("ReadWrite")
+		$store.add($devCert)
+		$store.close()
 	}
 	else {
 		Write-Output "$dnsName certificate found."

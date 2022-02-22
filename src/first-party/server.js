@@ -43,8 +43,9 @@ const documentSecurityHeaders = (nonce) => ({
 		`frame-ancestors 'none'; ` +
 		`require-trusted-types-for 'script'; ` +
 		`block-all-mixed-content; ` +
-		// `upgrade-insecure-requests; ` + // when running locally we don't support https
-		`report-uri ${origin}/report-uri`,
+		`upgrade-insecure-requests; ` +
+		`report-uri ${origin}/report-to; ` +
+		`report-to default;`,
 	"Cross-Origin-Embedder-Policy": `require-corp; report-to="default"`, // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
 	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
@@ -53,8 +54,11 @@ const documentSecurityHeaders = (nonce) => ({
 	// - https://developers.google.com/web/updates/2018/09/reportingapi
 	// - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
 	"Report-To": `{"group":"default","max_age":86400,"endpoints":[{"url":"${origin}/report-to"}]}`,
-	// Reporting-Endpoints from https://w3c.github.io/reporting/
-	"Reporting-Endpoints": `default="${origin}/reporting-endpoint"`,
+	// Reporting-Endpoints from
+	// - https://web.dev/reporting-api/
+	// - https://web.dev/reporting-api-migration/
+	// - https://w3c.github.io/reporting/
+	"Reporting-Endpoints": `default="${origin}/report-to"`,
 });
 
 const sirvOptions = {
@@ -96,7 +100,9 @@ app.get("/", async (req, res) => {
 		.digest()
 		.toString("base64url");
 
-	const crossOriginScriptUrl = new URL("https://third-party-test.localhost:8081/cross-origin.js");
+	const crossOriginScriptUrl = new URL(
+		"https://third-party-test.localhost:8081/cross-origin.js"
+	);
 	if (req.query["use-cors"]) {
 		crossOriginScriptUrl.searchParams.append("use-cors", "1");
 	}
@@ -125,33 +131,9 @@ app.get("/", async (req, res) => {
 	res.end(htmlBuffer);
 });
 
-app.post("report-uri", (req, res) => {
-	console.log(
-		"=== REPORT-URI BODY RECEIVED:",
-		JSON.stringify(req.body, null, 2)
-	);
-	res.writeHead(204, "No Content", {
-		...commonSecurityHeaders,
-	});
-
-	res.end();
-});
-
 app.post("/report-to", (req, res) => {
 	console.log(
 		"=== REPORT-TO BODY RECEIVED:",
-		JSON.stringify(req.body, null, 2)
-	);
-	res.writeHead(204, "No Content", {
-		...commonSecurityHeaders,
-	});
-
-	res.end();
-});
-
-app.post("/reporting-endpoint", (req, res) => {
-	console.log(
-		"=== REPORTING-ENDPOINT BODY RECEIVED:",
 		JSON.stringify(req.body, null, 2)
 	);
 	res.writeHead(204, "No Content", {
