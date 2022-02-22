@@ -37,6 +37,8 @@ const documentSecurityHeaders = (nonce) => ({
 	// - https://www.w3.org/TR/CSP3/#directive-fallback-list
 	"Content-Security-Policy":
 		`script-src 'nonce-${nonce}' 'strict-dynamic' https: 'unsafe-inline'; ` +
+		// Note: Opening devtools refetches CSS and causes CSP violation: https://crbug.com/928007
+		// Note: This feature would be really nice: https://crbug.com/999144
 		`style-src 'nonce-${nonce}'; ` + // Consider, does this block @import in css stylesheets?
 		`object-src 'none'; ` +
 		`base-uri 'none'; ` +
@@ -134,13 +136,19 @@ app.get("/", async (req, res) => {
 	res.end(htmlBuffer);
 });
 
-app.post("/report-to", (req, res) => {
-	console.log(
-		"=== REPORT-TO BODY RECEIVED:",
-		JSON.stringify(req.body, null, 2)
-	);
+app.all("/report-to", (req, res) => {
+	if (req.body) {
+		console.log(
+			"=== REPORT-TO BODY RECEIVED:",
+			JSON.stringify(req.body, null, 2)
+		);
+	}
+
 	res.writeHead(204, "No Content", {
 		...commonSecurityHeaders,
+		// Support OPTIONS pre-flight in case browser decides it needs to preflight
+		// the report request
+		"Access-Control-Allow-Origin": origin,
 	});
 
 	res.end();
