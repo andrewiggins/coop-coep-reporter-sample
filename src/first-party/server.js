@@ -12,9 +12,9 @@ const host = "localhost";
 const port = 8080;
 const baseUri = `http://${host}:${port}`;
 
-const website1Root = (...paths) => repoRoot("src/website1", ...paths);
-const templatePath = website1Root("templates/index.html");
-const scriptPath = website1Root("public/local-script.js");
+const siteRoot = (...paths) => repoRoot("src/first-party", ...paths);
+const templatePath = siteRoot("templates/index.html");
+const scriptPath = siteRoot("public/local-script.js");
 
 // Useful security header links:
 // - https://web.dev/security-headers/
@@ -54,7 +54,7 @@ app.use(morgan("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.json({ type: "application/csp-report" }));
 app.use(
-	sirv(website1Root("public"), {
+	sirv(siteRoot("public"), {
 		dev: true,
 		setHeaders(res) {
 			for (let name of Object.keys(commonSecurityHeaders)) {

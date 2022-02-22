@@ -3,8 +3,8 @@ import polka from "polka";
 import sirv from "sirv";
 import { repoRoot } from "../utils.js";
 
-const website2Root = (...paths) => repoRoot("src/website2", ...paths);
-const serve = sirv(website2Root("public"));
+const siteRoot = (...paths) => repoRoot("src/third-party", ...paths);
+const serve = sirv(siteRoot("public"), { dev: true });
 
 polka()
 	.get("/cross-origin.js", (req, res) => {
@@ -18,6 +18,7 @@ polka()
 
 		serve(req, res);
 	})
+	.get("/", serve)
 	.listen(8081, (err) => {
 		if (err) throw err;
 		console.log(`> Running on localhost:8081`);

@@ -6,8 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "run-p start:*",
-    "start:server1": "node ./src/website1/server.js",
-    "start:server2": "node ./src/website2/server.js"
+    "start:server1": "node ./src/first-party/server.js",
+    "start:server2": "node ./src/third-party/server.js"
   },
   "repository": {
     "type": "git",
