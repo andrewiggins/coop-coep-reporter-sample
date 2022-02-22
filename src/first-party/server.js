@@ -10,9 +10,9 @@ import sirv from "sirv";
 import { compile } from "tempura";
 import { repoRoot } from "../utils.js";
 
-const host = "localhost";
+const host = "first-party-test.localhost";
 const port = 8080;
-const baseUri = `https://${host}:${port}`;
+const origin = `https://${host}:${port}`;
 
 const siteRoot = (...paths) => repoRoot("src/first-party", ...paths);
 const templatePath = siteRoot("templates/index.html");
@@ -44,7 +44,7 @@ const documentSecurityHeaders = (nonce) => ({
 		`require-trusted-types-for 'script'; ` +
 		`block-all-mixed-content; ` +
 		// `upgrade-insecure-requests; ` + // when running locally we don't support https
-		`report-uri ${baseUri}/report; `,
+		`report-uri ${origin}/report; `,
 	"Cross-Origin-Embedder-Policy": `require-corp`, // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
 	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
@@ -83,7 +83,7 @@ app.get("/", async (req, res) => {
 		.digest()
 		.toString("base64url");
 
-	const crossOriginScriptUrl = new URL("http://localhost:8081/cross-origin.js");
+	const crossOriginScriptUrl = new URL("https://third-party-test.localhost:8081/cross-origin.js");
 	if (req.query["use-cors"]) {
 		crossOriginScriptUrl.searchParams.append("use-cors", "1");
 	}
@@ -122,11 +122,11 @@ app.post("report", (req, res) => {
 });
 
 const serverOptions = {
-	pfx: readFileSync(repoRoot("ssl.pfx")),
+	pfx: readFileSync(siteRoot("ssl.pfx")),
 	passphrase: "password",
 };
 
 // Mount Polka to HTTPS server
 createServer(serverOptions, app.handler).listen(port, (_) => {
-	console.log(`> Running on https://localhost:${port}`);
+	console.log(`> Running on ${origin}`);
 });
