@@ -1,4 +1,4 @@
-{{#expect nonce, scriptIntegrity}}
+{{#expect nonce, scriptIntegrity, crossOriginScriptUrl, requireCors}}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -10,43 +10,121 @@
 	</head>
 	<body>
 		<h1>Website 1</h1>
-		<p>Scenarios to try:</p>
 
-		<h2>Success!</h2>
+		<p id="local-script-result">
+			🔃 Loading local script... (if script fails to load, this will never
+			update). Open DevTools to investigate.
+		</p>
+		<p id="cross-origin-result">
+			🔃 Loading cross-origin script... (if script fails to load, this will
+			never update). Open DevTools to investigate.
+		</p>
+
+		<hr />
+
+		<h2>Success with COEP & CORP</h2>
 		<p><a href="/">Demo</a></p>
-		<p>All security validations passed!</p>
+		<p>Expect: All scripts load</p>
+		<p>
+			All security validations passed! CSP policies (i.e. nonce) passes and
+			Cross-Origin-Embedder-Policy (which requires all resources loaded with
+			CORS (has <code>cross-origin</code> attribute and CORS header) or for
+			resource to have a CORP) passed). Settings applied:
+		</p>
+		<ul>
+			<li>Integrity checks passed</li>
+			<li>CSP nonce checks passed</li>
+			<li>Cross-origin script returns CORP header to pass COEP policy</li>
+		</ul>
+		<blockquote>
+			Note: If using <code>type=module</code> scripts,
+			<code>cross-origin=anonymous</code> is implied and CORS headers are
+			required for 3rd party scripts
+		</blockquote>
+
+		<h2>Success with COEP & CORS</h2>
+		<p><a href="/?require-cors=1&use-cors=1&no-corp=1">Demo</a></p>
+		<p>Expect: All scripts load</p>
+		<p>
+			All security validations passed! CSP policies (i.e. nonce) passes and
+			Cross-Origin-Embedder-Policy (which requires all resources loaded with
+			CORS (has <code>cross-origin</code> attribute and CORS header) or for
+			resource to have a CORP) passed). Settings applied:
+		</p>
+		<ul>
+			<li>Integrity checks passed</li>
+			<li>CSP nonce checks passed</li>
+			<li>Cross-origin script returns CORS header to pass COEP policy</li>
+		</ul>
+		<blockquote>
+			Note: If using <code>type=module</code> scripts,
+			<code>cross-origin=anonymous</code> is implied and CORS headers are
+			required for 3rd party scripts
+		</blockquote>
 
 		<h2>Fail CSP nonce check</h2>
 		<p><a href="/?fail-nonce=1">Demo</a></p>
+		<p>Expect: All scripts fail</p>
 		<p>Fail to load the script because the nonce attribute doesn't match.</p>
 
 		<h2>Fail sub-resource integrity check</h2>
 		<p><a href="/?fail-integrity=1">Demo</a></p>
+		<p>Expect: Local script fails</p>
 		<p>
 			Fail to load the script because the integrity attribute doesn't match.
 		</p>
 
-		<hr />
-		<p id="local-script-result">
-			🔃 Loading local script... (if script fails to load, this will never
-			update)
-		</p>
-		<p id="cross-origin-result">
-			🔃 Loading cross-origin script... (if script fails to load, this will
-			never update)
+		<h2>No CORP header</h2>
+		<p><a href="/?no-corp=1">Demo</a></p>
+		<p>Expect: cross origin script fails</p>
+		<p>
+			Load the cross-origin script without a CORP header so it fails the COEP
+			policy
 		</p>
 
+		<h2>No CORS header but with <code>cross-origin</code> attribute</h2>
+		<p><a href="/?require-cors=1">Demo</a></p>
+		<p>Expect: cross origin script fails</p>
+		<p>
+			Load the cross-origin script without a CORS header even though CORS is
+			required
+		</p>
+
+		<h2>No <code>cross-origin</code> attribute and only return CORS header</h2>
+		<p><a href="/?use-cors=1&no-corp=1">Demo</a></p>
+		<p>Expect: cross origin script fails</p>
+		<p>
+			Load the cross-origin script without a <code>cross-origin</code> attribute
+			but it only returns a CORS header with no CORP header. CORS header alone
+			does not satisfy COEP. <code>cross-origin</code> attribute is also
+			required.
+		</p>
+
+		<script nonce="{{nonce}}">
+			let observer = new ReportingObserver((reports) => {
+				for (let report of reports) {
+					console.log(JSON.stringify(report, null, 2));
+				}
+			});
+
+			observer.observe();
+			window.addEventListener("load", () => observer.takeRecords());
+		</script>
+
 		<script
-			type="module"
 			src="/local-script.js"
 			nonce="{{nonce}}"
 			integrity="{{scriptIntegrity}}"
 		></script>
 
+		{{#if requireCors}}
 		<script
-			type="module"
-			src="http://localhost:8081/cross-origin.js"
+			src="{{crossOriginScriptUrl}}"
 			nonce="{{nonce}}"
+			crossorigin="anonymous"
 		></script>
+		{{#else}}
+		<script src="{{crossOriginScriptUrl}}" nonce="{{nonce}}"></script>
+		{{/if}}
 	</body>
 </html>

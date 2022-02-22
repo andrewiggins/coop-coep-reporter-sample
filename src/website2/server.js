@@ -4,17 +4,20 @@ import sirv from "sirv";
 import { repoRoot } from "../utils.js";
 
 const website2Root = (...paths) => repoRoot("src/website2", ...paths);
+const serve = sirv(website2Root("public"));
 
 polka()
-	.use(
-		sirv(website2Root("public"), {
-			setHeaders(res) {
-				// TODO: Hmmm Edge seems to require Access-Control-Allow-Origin. CORP isn't enough
-				// res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-				res.setHeader("Access-Control-Allow-Origin", "*");
-			},
-		})
-	)
+	.get("/cross-origin.js", (req, res) => {
+		if (!req.query["no-corp"]) {
+			res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+		}
+
+		if (req.query["use-cors"]) {
+			res.setHeader("Access-Control-Allow-Origin", "*");
+		}
+
+		serve(req, res);
+	})
 	.listen(8081, (err) => {
 		if (err) throw err;
 		console.log(`> Running on localhost:8081`);

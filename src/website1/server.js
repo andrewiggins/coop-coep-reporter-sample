@@ -23,7 +23,7 @@ const scriptPath = website1Root("public/local-script.js");
 /** Security headers to apply to all requests */
 const commonSecurityHeaders = {
 	"X-Content-Type-Options": "nosniff", // Prevent sniffing content type (which can be hacked)
-	// "Cross-Origin-Resource-Policy": "same-origin", // allows a resource owner to specify who can load the resource. Here, we allow only our origin load our assets
+	"Cross-Origin-Resource-Policy": "same-origin", // allows a resource owner to specify who can load the resource. Here, we allow only our origin load our assets
 };
 
 /** Security headers to apply to all document/HTML requests */
@@ -42,7 +42,7 @@ const documentSecurityHeaders = (nonce) => ({
 		`block-all-mixed-content; ` +
 		// `upgrade-insecure-requests; ` + // when running locally we don't support https
 		`report-uri ${baseUri}/report; `,
-	// "Cross-Origin-Embedder-Policy": "require-corp", // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
+	"Cross-Origin-Embedder-Policy": `require-corp`, // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
 	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
 	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
@@ -79,11 +79,21 @@ app.get("/", async (req, res) => {
 		.digest()
 		.toString("base64url");
 
+	const crossOriginScriptUrl = new URL("http://localhost:8081/cross-origin.js");
+	if (req.query["use-cors"]) {
+		crossOriginScriptUrl.searchParams.append("use-cors", "1");
+	}
+	if (req.query["no-corp"]) {
+		crossOriginScriptUrl.searchParams.append("no-corp", "1");
+	}
+
 	const html = await render({
 		nonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
 		scriptIntegrity: req.query["fail-integrity"]
 			? `${alg}-bad-integrity`
 			: `${alg}-${localScriptIntegrity}`,
+		crossOriginScriptUrl: crossOriginScriptUrl.toString(),
+		requireCors: Boolean(req.query["require-cors"]),
 	});
 	const htmlBuffer = new TextEncoder().encode(html);
 
@@ -98,7 +108,7 @@ app.get("/", async (req, res) => {
 });
 
 app.post("report", (req, res) => {
-	console.log("=== REPORT:", JSON.stringify(req.body, null, 2));
+	console.log("=== REPORT BODY RECEIVED:", JSON.stringify(req.body, null, 2));
 	res.writeHead(204, "No Content", {
 		...commonSecurityHeaders,
 	});
