@@ -1,4 +1,5 @@
-{{#expect nonce, scriptNonce, scriptIntegrity, crossOriginScriptUrl, requireCors}}
+{{#expect nonce, scriptNonce, scriptIntegrity, crossOriginScriptUrl,
+requireCors}}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -12,10 +13,19 @@
 				max-width: 768px;
 				margin: 0 auto;
 				padding: 1rem;
+				overflow-x: initial;
 			}
 
 			.scenario-category-title {
 				display: inline-block;
+			}
+
+			pre {
+				tab-size: 2;
+			}
+
+			.code code {
+				width: auto;
 			}
 		</style>
 	</head>
@@ -29,6 +39,11 @@
 		<p id="cross-origin-result">
 			🔃 Loading cross-origin script... (if script fails to load, this will
 			never update). Open DevTools to investigate.
+		</p>
+
+		<p>
+			Cross-origin isolated enabled:
+			<span id="cross-origin-isolation-label">loading...</span>
 		</p>
 
 		<hr />
@@ -158,6 +173,48 @@
 			</div>
 		</details>
 
+		<hr />
+
+		<details>
+			<summary><h2 class="scenario-category-title">Sample reports</h2></summary>
+
+			<h3>CSP violation report</h3>
+			<pre class="code" data-lang="json"><code>[
+	{
+		"type": "csp-violation",
+		"url": "https://first-party-test.localhost:8080/",
+		"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+		"age": 0,
+		"body": {
+			"blockedURL": "https://first-party-test.localhost:8080/spectre.css",
+			"disposition": "enforce",
+			"documentURL": "https://first-party-test.localhost:8080/",
+			"effectiveDirective": "style-src-elem",
+			"originalPolicy": "script-src 'nonce-0c3c7b93-8d88-42e0-b9c1-bc2e63aa0dfd' 'strict-dynamic' https: 'unsafe-inline'; style-src 'nonce-0c3c7b93-8d88-42e0-b9c1-bc2e63aa0dfd'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; block-all-mixed-content; upgrade-insecure-requests; report-uri https://first-party-test.localhost:8080/report-to; report-to default;",
+			"referrer": "",
+			"sample": "",
+			"statusCode": 200
+		},
+	}
+]</code></pre>
+
+			<h3>COEP violation report</h3>
+			<pre class="code" data-lang="json"><code>[
+	{
+		"type": "coep",
+		"url": "https://first-party-test.localhost:8080/?no-corp=1",
+		"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+		"age": 0,
+		"body": {
+			"blockedURL": "https://third-party-test.localhost:8081/cross-origin.js?no-corp=1",
+			"destination": "script",
+			"disposition": "enforce",
+			"type": "corp"
+		},
+	}
+]</code></pre>
+		</details>
+
 		<script nonce="{{nonce}}">
 			let observer = new ReportingObserver((reports) => {
 				for (let report of reports) {
@@ -186,6 +243,9 @@
 		{{/if}}
 
 		<script nonce="{{nonce}}">
+			document.getElementById("cross-origin-isolation-label").textContent =
+				window.crossOriginIsolated?.toString() ?? "not supported";
+
 			const currentScenarioId = location.pathname + location.search;
 			const scenarios = document.getElementsByClassName("scenario");
 			for (let scenario of scenarios) {
