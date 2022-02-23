@@ -1,0 +1,34 @@
+body {
+	max-width: 768px;
+	margin: 0 auto;
+	padding: 1rem;
+	overflow-x: initial;
+}
+
+.scenario-category-title {
+	display: inline-block;
+}
+
+pre {
+	tab-size: 2;
+}
+
+.code code {
+	width: auto;
+}
+
+.cross-origin-isolated {
+	background-color: rgb(238, 238, 255);
+}
+
+.popup-btns {
+	display: flex;
+}
+
+.popup-btns .btn {
+	flex: 0 0 auto;
+}
+
+[hidden] {
+	display: none !important;
+}

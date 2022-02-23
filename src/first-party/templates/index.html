@@ -1,36 +1,22 @@
 {{#expect nonce, scriptNonce, scriptIntegrity, crossOriginScriptUrl,
-requireCors}}
-
+requireCors, crossOriginPopupUrl, crossOriginPage}}
 <!DOCTYPE html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Test first-party site</title>
-		<link href="/spectre.css" rel="stylesheet" nonce="{{nonce}}" />
-		<style nonce="{{nonce}}">
-			body {
-				max-width: 768px;
-				margin: 0 auto;
-				padding: 1rem;
-				overflow-x: initial;
-			}
-
-			.scenario-category-title {
-				display: inline-block;
-			}
-
-			pre {
-				tab-size: 2;
-			}
-
-			.code code {
-				width: auto;
-			}
-		</style>
+		<link href="/spectre.min.css" rel="stylesheet" nonce="{{nonce}}" />
+		<link href="/styles.css" rel="stylesheet" nonce="{{nonce}}" />
 	</head>
 	<body>
 		<h1>Test first-party site</h1>
+
+		<p>
+			<a href="https://first-party-test.glitch.me/"
+				>Another great test site for these headers</a
+			>
+		</p>
 
 		<p id="local-script-result">
 			🔃 Loading local script... (if script fails to load, this will never
@@ -45,6 +31,29 @@ requireCors}}
 			Cross-origin isolated enabled:
 			<span id="cross-origin-isolation-label">loading...</span>
 		</p>
+
+		<p class="popup-btns btn-group">
+			<button id="same-origin-open" class="btn btn-primary" type="button">
+				Open same-origin popup
+			</button>
+			<button id="same-origin-message" class="btn" type="button" hidden>
+				Post message
+			</button>
+		</p>
+		<p class="popup-btns btn-group">
+			<button id="cross-origin-open" class="btn btn-primary" type="button">
+				Open cross-origin popup
+			</button>
+			<button id="cross-origin-message" class="btn" type="button" hidden>
+				Post message
+			</button>
+		</p>
+		<!-- COOP example using named targets -->
+		<!-- <p>
+			<a class="btn" href="{{crossOriginPage}}" target="Named target"
+				>Navigate to cross-origin page</a
+			>
+		</p> -->
 
 		<hr />
 
@@ -105,11 +114,19 @@ requireCors}}
 					required for 3rd party scripts
 				</blockquote>
 			</div>
+
+			<div class="scenario">
+				<h3 class="scenario-title">Opening a same-origin popup</h3>
+				<p>Click the "Open same-origin popup" button above</p>
+				<p>
+					Expect: same origin popup does receive any messages from this window
+				</p>
+			</div>
 		</details>
 
 		<details>
 			<summary>
-				<h2 class="scenario-category-title">Fail CSP scenarios</h2>
+				<h2 class="scenario-category-title">Scenarios CSP blocks loading</h2>
 			</summary>
 
 			<div class="scenario">
@@ -133,7 +150,9 @@ requireCors}}
 
 		<details>
 			<summary>
-				<h2 class="scenario-category-title">Fail COEP scenarios</h2>
+				<h2 class="scenario-category-title">
+					Scenarios when COEP blocks loading
+				</h2>
 			</summary>
 
 			<div class="scenario">
@@ -171,6 +190,52 @@ requireCors}}
 					<code>cross-origin</code> attribute is also required.
 				</p>
 			</div>
+		</details>
+
+		<details>
+			<summary>
+				<h2 class="scenario-category-title">Scenarios COOP blocks</h2>
+			</summary>
+
+			<p>
+				Many of these scenarios are demonstrated using popups, but there are
+				other instances (e.g. links with named <code>target</code> attributes)
+				COOP may block
+			</p>
+
+			<div class="scenario">
+				<h3 class="scenario-title">
+					Posting message from a COOP page to a cross-origin popup
+				</h3>
+				<p>Click the "Open cross-origin popup" button above</p>
+				<p>
+					Expect: cross origin popup does not receive any messages from this
+					window
+				</p>
+				<p>
+					This scenario sends a <code>navigation-from-response</code> report
+					type
+				</p>
+			</div>
+
+			<div class="scenario">
+				<h3 class="scenario-title">
+					Posting a message from a page to COOP cross-origin popup
+				</h3>
+				<p>
+					Click the "Open cross-origin popup" button above. Then inside the
+					popup
+				</p>
+				<p>
+					Expect: cross origin popup does not receive any messages from this
+					window
+				</p>
+				<p>
+					This scenario sends a <code>navigation-to-response</code> report type
+				</p>
+			</div>
+
+			<!-- cross-origin accessible properties: https://html.spec.whatwg.org/multipage/browsers.html#cross-origin-accessible-window-property-name -->
 		</details>
 
 		<hr />
@@ -213,6 +278,39 @@ requireCors}}
 		},
 	}
 ]</code></pre>
+
+			<h3>COOP <code>navigation-from-response</code> violation report</h3>
+			<pre class="code" data-lang="json"><code>[
+	{
+		"type": "coop",
+		"url": "https://first-party-test.localhost:8080/",
+		"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+		"age": 16,
+		"body": {
+			"disposition": "enforce",
+			"effectivePolicy": "same-origin-plus-coep",
+			"nextResponseURL": "https://third-party-test.localhost:8081/popup",
+			"type": "navigation-from-response"
+		},
+	}
+]</code></pre>
+
+			<h3>COOP <code>navigation-to-response</code> violation report</h3>
+			<pre class="code" data-lang="json"><code>[
+	{
+		"type": "coop",
+		"url": "https://first-party-test.localhost:8080/",
+		"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+    "age": 12,
+    "body": {
+      "disposition": "enforce",
+      "effectivePolicy": "same-origin-plus-coep",
+      "previousResponseURL": "",
+      "referrer": "https://third-party-test.localhost:8081/",
+      "type": "navigation-to-response"
+    },
+  }
+]</code></pre>
 		</details>
 
 		<script nonce="{{nonce}}">
@@ -246,6 +344,10 @@ requireCors}}
 			document.getElementById("cross-origin-isolation-label").textContent =
 				window.crossOriginIsolated?.toString() ?? "not supported";
 
+			if (window.crossOriginIsolated) {
+				document.body.classList.add("cross-origin-isolated");
+			}
+
 			const currentScenarioId = location.pathname + location.search;
 			const scenarios = document.getElementsByClassName("scenario");
 			for (let scenario of scenarios) {
@@ -262,6 +364,44 @@ requireCors}}
 					break;
 				}
 			}
+
+			/**
+			 * @param {string} popupUrl
+			 * @param {HTMLElement} openBtn
+			 * @param {HTMLElement} messageBtn
+			 */
+			function setupPopupButtons(popupUrl, popupTitle, openBtn, messageBtn) {
+				/** @type {Window} */
+				let popup;
+
+				openBtn.addEventListener("click", () => {
+					if (popup?.closed ?? true) {
+						popup = window.open(popupUrl, popupTitle, "width=420, height=420");
+						messageBtn.removeAttribute("hidden");
+					} else {
+						popup.focus();
+					}
+				});
+
+				messageBtn.setAttribute("hidden", "");
+				messageBtn.addEventListener("click", () => {
+					popup.postMessage("A new message!");
+				});
+			}
+
+			setupPopupButtons(
+				location.origin + "/popup",
+				"Same-origin popup",
+				document.getElementById("same-origin-open"),
+				document.getElementById("same-origin-message")
+			);
+
+			setupPopupButtons(
+				"{{crossOriginPopupUrl}}",
+				"Cross-origin popup",
+				document.getElementById("cross-origin-open"),
+				document.getElementById("cross-origin-message")
+			);
 		</script>
 	</body>
 </html>

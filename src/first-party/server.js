@@ -15,7 +15,8 @@ const port = 8080;
 const origin = `https://${host}:${port}`;
 
 const siteRoot = (...paths) => repoRoot("src/first-party", ...paths);
-const templatePath = siteRoot("templates/index.html");
+const indexTemplatePath = siteRoot("templates/index.html");
+const popupTemplatePath = siteRoot("templates/popup.html");
 const scriptPath = siteRoot("public/local-script.js");
 
 // Useful security header links:
@@ -49,7 +50,7 @@ const documentSecurityHeaders = (nonce) => ({
 		`report-uri ${origin}/report-to; ` +
 		`report-to default;`,
 	"Cross-Origin-Embedder-Policy": `require-corp; report-to="default"`, // prevent assets being loaded that do not grant permission to load them via CORS or CORP.
-	// "Cross-Origin-Opener-Policy": "", // opt-in to Cross-Origin Isolation in the browser.
+	"Cross-Origin-Opener-Policy": `same-origin; report-to="default"`, // opt-in to Cross-Origin Isolation in the browser.
 	"X-XSS-Protection": "1; mode=block", // Older browser mechanism to prevent XSS
 	"Referrer-Policy": "strict-origin-when-cross-origin", // Prevent leaking path/query params to other sites
 
@@ -94,7 +95,7 @@ app.get("/", async (req, res) => {
 	// Recompile template and integrity on every request to support easy development.
 	// In production, compute these once
 
-	const template = await readFile(templatePath, "utf-8");
+	const template = await readFile(indexTemplatePath, "utf-8");
 	const render = compile(template);
 
 	const nonce = crypto.randomUUID();
@@ -115,6 +116,14 @@ app.get("/", async (req, res) => {
 		crossOriginScriptUrl.searchParams.append("no-corp", "1");
 	}
 
+	const crossOriginPopupUrl = new URL(
+		"https://third-party-test.localhost:8081/popup"
+	);
+
+	const crossOriginPage = new URL(
+		"https://third-party-test.localhost:8081/"
+	);
+
 	const html = await render({
 		nonce,
 		scriptNonce: req.query["fail-nonce"] ? "bad-nonce" : nonce,
@@ -122,8 +131,28 @@ app.get("/", async (req, res) => {
 			? `${alg}-bad-integrity`
 			: `${alg}-${localScriptIntegrity}`,
 		crossOriginScriptUrl: crossOriginScriptUrl.toString(),
+		crossOriginPopupUrl: crossOriginPopupUrl.toString(),
+		crossOriginPage,
 		requireCors: Boolean(req.query["require-cors"]),
 	});
+	const htmlBuffer = new TextEncoder().encode(html);
+
+	res.writeHead(200, "OK", {
+		"Content-Type": "text/html",
+		"Content-Length": htmlBuffer.byteLength,
+		...commonSecurityHeaders,
+		...documentSecurityHeaders(nonce),
+	});
+
+	res.end(htmlBuffer);
+});
+
+app.get("/popup", async (req, res) => {
+	const template = await readFile(popupTemplatePath, "utf8");
+	const render = compile(template);
+
+	const nonce = crypto.randomUUID();
+	const html = await render({ nonce });
 	const htmlBuffer = new TextEncoder().encode(html);
 
 	res.writeHead(200, "OK", {

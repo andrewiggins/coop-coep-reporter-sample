@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Third party popup</title>
+		<style>
+			[hidden] {
+				display: none !important;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Third party popup</h1>
+		<p>
+			Cross-origin isolated enabled:
+			<code id="cross-origin-isolation-label">loading...</code><br />
+			Access to <code>window.opener</code> blocked:
+			<code id="window-opener-label">loading...</code>
+		</p>
+		<p>
+			<button id="cross-origin-open" type="button" class="btn">
+				Open cross-origin popup
+			</button>
+			<button id="cross-origin-message" type="button" class="btn" hidden>
+				Post message to popup
+			</button>
+		</p>
+		<h2>Messages received:</h2>
+		<p id="empty">No messages received yet.</p>
+		<script>
+			document.getElementById("cross-origin-isolation-label").textContent =
+				window.crossOriginIsolated?.toString() ?? "not supported";
+			if (window.crossOriginIsolated) {
+				document.body.classList.add("cross-origin-isolated");
+			}
+
+			document.getElementById("window-opener-label").textContent =
+				window.opener == null;
+
+			/**
+			 * @param {string} popupUrl
+			 * @param {HTMLElement} openBtn
+			 * @param {HTMLElement} messageBtn
+			 */
+			function setupPopupButtons(popupUrl, popupTitle, openBtn, messageBtn) {
+				/** @type {Window} */
+				let popup;
+
+				openBtn.addEventListener("click", () => {
+					if (popup?.closed ?? true) {
+						popup = window.open(popupUrl, popupTitle, "width=420, height=420");
+						messageBtn.removeAttribute("hidden");
+					} else {
+						popup.focus();
+					}
+				});
+
+				messageBtn.setAttribute("hidden", "");
+				messageBtn.addEventListener("click", () => {
+					popup.postMessage("A new message!");
+				});
+			}
+
+			setupPopupButtons(
+				"https://first-party-test.localhost:8080/popup",
+				"",
+				document.getElementById("cross-origin-open"),
+				document.getElementById("cross-origin-message")
+			);
+
+			window.addEventListener("message", (e) => {
+				let messages = document.getElementById("messages");
+				if (!messages) {
+					messages = document.createElement("ol");
+					messages.id = "messages";
+
+					document.getElementById("empty").replaceWith(messages);
+				}
+
+				const li = document.createElement("li");
+				li.textContent = e.data;
+				messages.appendChild(li);
+			});
+		</script>
+	</body>
+</html>

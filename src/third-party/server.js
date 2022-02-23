@@ -24,6 +24,9 @@ const app = polka()
 
 		serve(req, res);
 	})
+	.get("/popup", (req, res) => {
+		serve(req, res);
+	})
 	.get("/", serve);
 
 const serverOptions = {

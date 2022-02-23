@@ -1,0 +1,46 @@
+{{#expect nonce}}
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>First party popup</title>
+		<link href="/spectre.min.css" rel="stylesheet" nonce="{{nonce}}" />
+		<link href="/styles.css" rel="stylesheet" nonce="{{nonce}}" />
+	</head>
+	<body>
+		<h1>First party popup</h1>
+		<p>
+			Cross-origin isolated enabled:
+			<code id="cross-origin-isolation-label">loading...</code><br />
+			Access to <code>window.opener</code> blocked:
+			<code id="window-opener-label">loading...</code>
+		</p>
+		<h2>Messages received:</h2>
+		<p id="empty">No messages received yet.</p>
+		<script nonce="{{nonce}}">
+			document.getElementById("cross-origin-isolation-label").textContent =
+				window.crossOriginIsolated?.toString() ?? "not supported";
+			if (window.crossOriginIsolated) {
+				document.body.classList.add("cross-origin-isolated");
+			}
+
+			document.getElementById("window-opener-label").textContent =
+				window.opener == null;
+
+			window.addEventListener("message", (e) => {
+				let messages = document.getElementById("messages");
+				if (!messages) {
+					messages = document.createElement("ol");
+					messages.id = "messages";
+
+					document.getElementById("empty").replaceWith(messages);
+				}
+
+				const li = document.createElement("li");
+				li.textContent = e.data;
+				messages.appendChild(li);
+			});
+		</script>
+	</body>
+</html>
